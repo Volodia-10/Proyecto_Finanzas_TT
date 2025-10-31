@@ -1,0 +1,59 @@
+
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ingresos Totales</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header-actions">
+      <div class="left"><h2>INGRESOS TOTALES</h2></div>
+      <div class="right">
+        <a href="/ingresos/nuevo" class="btn">Generar ingreso</a>
+        <a href="/ingresos/resumen" class="btn">Resumen</a>
+        <div class="export">
+          <button class="btn" id="expInCsv">Exportar CSV</button>
+          <button class="btn" id="expInXlsx">Exportar XLSX</button>
+        </div>
+        <a href="/" class="btn">Inicio</a>
+      </div>
+    </div>
+
+    <div class="filters">
+      <div class="filter-row">
+        <input data-col="0" class="filter" placeholder="Filtrar FECHA">
+        <input data-col="1" class="filter" placeholder="Filtrar CANTIDAD">
+        <input data-col="2" class="filter" placeholder="Filtrar SEMESTRE">
+        <input data-col="3" class="filter" placeholder="Filtrar BANCO">
+        <input data-col="4" class="filter" placeholder="Filtrar MÉTODO">
+        <input data-col="5" class="filter" placeholder="Filtrar LÍNEA">
+        <input data-col="6" class="filter" placeholder="Filtrar USER">
+        <input data-col="7" class="filter" placeholder="Filtrar EXTRA">
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table id="tablaIngresos" class="fixed">
+        <thead>
+          <tr>
+            <th>FECHA</th>
+            <th>CANTIDAD</th>
+            <th>SEMESTRE</th>
+            <th>BANCO</th>
+            <th>MÉTODO</th>
+            <th>LÍNEA</th>
+            <th>USER</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="/static/script.js"></script>
+</body>
+</html>

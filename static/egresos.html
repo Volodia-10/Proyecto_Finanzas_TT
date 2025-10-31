@@ -1,0 +1,63 @@
+
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Egresos Totales</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header-actions">
+      <div class="left"><h2>EGRESOS TOTALES</h2></div>
+      <div class="right">
+        <a href="/egresos/nuevo" class="btn">Generar egreso</a>
+        <a href="/egresos/resumen" class="btn">Resumen</a>
+        <div class="export">
+          <button class="btn" id="expEgCsv">Exportar CSV</button>
+          <button class="btn" id="expEgXlsx">Exportar XLSX</button>
+        </div>
+        <a href="/" class="btn">Inicio</a>
+      </div>
+    </div>
+
+    <div class="filters">
+      <div class="filter-row">
+        <input data-col="0" class="filter" placeholder="Filtrar FECHA">
+        <input data-col="1" class="filter" placeholder="Filtrar CUENTA">
+        <input data-col="2" class="filter" placeholder="Filtrar MÉTODO">
+        <input data-col="3" class="filter" placeholder="Filtrar CANTIDAD">
+        <input data-col="4" class="filter" placeholder="Filtrar CANTIDAD REAL">
+        <input data-col="5" class="filter" placeholder="Filtrar SEMESTRE">
+        <input data-col="6" class="filter" placeholder="Filtrar CATEGORÍA">
+        <input data-col="7" class="filter" placeholder="Filtrar RAZÓN">
+        <input data-col="8" class="filter" placeholder="Filtrar AUTORIZÓ">
+        <input data-col="9" class="filter" placeholder="Filtrar RESPONSABLE">
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table id="tablaEgresos" class="fixed">
+        <thead>
+          <tr>
+            <th>FECHA</th>
+            <th>CUENTA</th>
+            <th>MÉTODO</th>
+            <th>CANTIDAD</th>
+            <th>CANTIDAD REAL</th>
+            <th>SEMESTRE</th>
+            <th>CATEGORÍA</th>
+            <th>RAZÓN</th>
+            <th>AUTORIZÓ</th>
+            <th>RESPONSABLE</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="/static/script.js"></script>
+</body>
+</html>

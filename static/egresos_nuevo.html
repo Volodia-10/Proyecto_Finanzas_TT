@@ -1,0 +1,95 @@
+
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Generar Egreso</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header-actions">
+      <div class="left"><h2>Generar Egreso</h2></div>
+      <div class="right">
+        <a href="/egresos" class="btn">Egresos</a>
+        <a href="/egresos/resumen" class="btn">Resumen</a>
+        <a href="/" class="btn">Inicio</a>
+      </div>
+    </div>
+
+    <form id="formEgreso" class="form">
+      <div class="field">
+        <label>MONTO</label>
+        <input id="e_monto" type="text" inputmode="decimal" placeholder="-" required>
+        <small>Formato: $ 1.000.000,50</small>
+      </div>
+
+      <div class="field">
+        <label>CUENTA</label>
+        <div class="select-wrap">
+          <select id="e_cuenta" class="searchable" required></select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>MÉTODO</label>
+        <div class="select-wrap">
+          <select id="e_metodo" class="searchable" required>
+            <option value="">-</option>
+            <option value="PAGO">PAGO</option>
+            <option value="ENVIO">ENVIO</option>
+            <option value="TARJETA">TARJETA</option>
+            <option value="RETIRO">RETIRO</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>SEMESTRE</label>
+        <div class="select-wrap">
+          <select id="e_semestre" class="searchable" required></select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>CATEGORÍA</label>
+        <div class="select-wrap">
+          <select id="e_categoria" class="searchable" required></select>
+        </div>
+      </div>
+
+      <div id="e_dynamic"></div>
+
+      <div class="row">
+        <div class="field">
+          <label>AUTORIZÓ</label>
+          <div class="select-wrap">
+            <select id="e_autorizo" class="searchable" required>
+              <option value="">-</option>
+              <option>JESÚS</option><option>FELIPE</option><option>MARLON</option><option>MONICA</option><option>AUTOMATICO</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>RESPONSABLE</label>
+          <div class="select-wrap">
+            <select id="e_responsable" class="searchable" required>
+              <option value="">-</option>
+              <option>JESÚS</option><option>FELIPE</option><option>MARLON</option><option>EMPRESA</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button type="submit" class="btn primary">REGISTRAR EGRESO</button>
+      </div>
+    </form>
+  </div>
+
+  <div id="toast" class="toast hidden">EGRESO REGISTRADO CON ÉXITO</div>
+
+  <script src="/static/script.js"></script>
+</body>
+</html>
