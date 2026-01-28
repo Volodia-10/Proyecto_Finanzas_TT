@@ -12,6 +12,7 @@ import io, csv
 
 # ==== BD ====
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from .database import Base, engine, get_db
 from .models import Ingreso, Egreso
 
@@ -44,7 +45,18 @@ def two_dec(v: Decimal) -> Decimal:
 # ===== Crear tablas al arrancar =====
 @app.on_event("startup")
 def on_startup():
-    Base.metadata.create_all(bind=engine)
+    try:
+        # Crea tablas y prueba la conexión
+        Base.metadata.create_all(bind=engine)
+        with engine.connect() as conn:
+            conn.execute(text("select 1"))
+        print("DB connection OK ->", engine.url)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        print("DB ERROR ->", e)
+        # Re-lanzamos para que Render marque el deploy como fallido y podamos ver el stacktrace
+        raise
 
 # ====== PÁGINAS (HTML) ======
 @app.get("/")
