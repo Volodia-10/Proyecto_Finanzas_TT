@@ -67,4 +67,4 @@ class Egreso(Base):
 
 # Índices útiles para filtros/consultas
 Index("ix_egresos_semestre_cuenta", Egreso.semestre, Egreso.cuenta)
-Index("ix_egresos_categoria", Egreso.categoria)
+
