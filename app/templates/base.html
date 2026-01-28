@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>{% block title %}Proyecto Finanzas TT{% endblock %}</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;margin:0;background:#0b1020;color:#e8ebf4}
+    header{background:#111634;border-bottom:1px solid #1f264d;position:sticky;top:0}
+    .wrap{max-width:1000px;margin:auto;padding:18px}
+    nav a{color:#cbd3ff;text-decoration:none;margin-right:12px}
+    nav a:hover{color:#fff}
+    h1,h2{margin:16px 0}
+    table{width:100%;border-collapse:collapse;background:#0f1631;border:1px solid #212a5a}
+    th,td{padding:10px;border-top:1px solid #212a5a;text-align:left}
+    th{background:#151c43;color:#cdd4ff;position:sticky;top:56px}
+    input,select,button,textarea{background:#0f1631;border:1px solid #303a78;color:#e8ebf4;padding:8px;border-radius:8px}
+    button{cursor:pointer}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+    .mt{margin-top:14px}
+    .muted{color:#9aa4d2}
+    .ok{color:#87efb6}
+    .warn{color:#ffd38a}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  </style>
+</head>
+<body>
+<header>
+  <div class="wrap row" style="justify-content:space-between;">
+    <nav>
+      <a href="/">Inicio</a>
+      <a href="/ingresos">Ingresos</a>
+      <a href="/ingresos/nuevo">+ Ingreso</a>
+      <a href="/egresos">Egresos</a>
+      <a href="/egresos/nuevo">+ Egreso</a>
+      <a href="/resumen_ingresos">Resumen Ingresos</a>
+      <a href="/resumen_egresos">Resumen Egresos</a>
+    </nav>
+    <nav>
+      <a class="muted" href="/__debug/db">DB</a>
+    </nav>
+  </div>
+</header>
+<main class="wrap">
+  {% block content %}{% endblock %}
+</main>
+<script src="/static/script.js"></script>
+</body>
+</html>

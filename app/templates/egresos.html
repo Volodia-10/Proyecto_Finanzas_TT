@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Egresos{% endblock %}
+{% block content %}
+<h2>Egresos</h2>
+<p class="muted">
+  <a class="ok" href="/egresos/export.csv">Descargar CSV</a>
+  &nbsp;&middot;&nbsp;
+  <a class="ok" href="/egresos/export.xlsx">Descargar XLSX</a>
+</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Fecha</th><th>Cuenta</th><th>Método</th>
+      <th>Cantidad</th><th>Cantidad Real</th>
+      <th>Semestre</th><th>Categoría</th><th>Razón</th>
+      <th>Autorizó</th><th>Responsable</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in registros %}
+    <tr>
+      <td>{{ r.fecha.strftime("%d/%m/%Y %H:%M:%S") if r.fecha else "" }}</td>
+      <td>{{ r.cuenta }}</td>
+      <td>{{ r.metodo }}</td>
+      <td>${{ '%.2f'|format(r.cantidad or 0) }}</td>
+      <td>${{ '%.2f'|format(r.cantidad_real or 0) }}</td>
+      <td>{{ r.semestre }}</td>
+      <td>{{ r.categoria }}</td>
+      <td>{{ r.razon }}</td>
+      <td>{{ r.autorizo }}</td>
+      <td>{{ r.responsable }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

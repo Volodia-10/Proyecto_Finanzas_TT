@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Resumen Egresos{% endblock %}
+{% block content %}
+<h2>Resumen de Egresos</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Cuenta \ Semestre</th>
+      {% for s in semestres %}<th>{{ s }}</th>{% endfor %}
+      <th>Total Cuenta</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for cuenta, mapa in pivot.items() %}
+    <tr>
+      <td><strong>{{ cuenta }}</strong></td>
+      {% for s in semestres %}
+        {% set val = mapa.get(s, 0) %}
+        <td>${{ '%.2f'|format(val) }}</td>
+      {% endfor %}
+      <td>${{ '%.2f'|format(total_por_cuenta.get(cuenta,0)) }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+  <tfoot>
+    <tr>
+      <th>Total Semestre</th>
+      {% for s in semestres %}
+        <th>${{ '%.2f'|format(total_por_semestre.get(s,0)) }}</th>
+      {% endfor %}
+      <th></th>
+    </tr>
+  </tfoot>
+</table>
+{% endblock %}

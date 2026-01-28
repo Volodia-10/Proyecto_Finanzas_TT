@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Ingresos{% endblock %}
+{% block content %}
+<h2>Ingresos</h2>
+<p class="muted">
+  <a class="ok" href="/ingresos/export.csv">Descargar CSV</a>
+  &nbsp;&middot;&nbsp;
+  <a class="ok" href="/ingresos/export.xlsx">Descargar XLSX</a>
+</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Fecha</th><th>Cantidad</th><th>Semestre</th><th>Banco</th>
+      <th>Método</th><th>Línea</th><th>User</th><th>Extra</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in registros %}
+    <tr>
+      <td>{{ r.fecha.strftime("%d/%m/%Y %H:%M:%S") if r.fecha else "" }}</td>
+      <td>${{ '%.2f'|format(r.cantidad or 0) }}</td>
+      <td>{{ r.semestre }}</td>
+      <td>{{ r.banco }}</td>
+      <td>{{ r.metodo }}</td>
+      <td>{{ r.linea }}</td>
+      <td>{{ r.user }}</td>
+      <td>{{ r.extra }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

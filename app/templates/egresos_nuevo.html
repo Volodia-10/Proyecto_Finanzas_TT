@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}+ Egreso{% endblock %}
+{% block content %}
+<h2>Nuevo Egreso</h2>
+
+<form class="grid" method="post" action="/egresos/nuevo">
+  <div>
+    <label>Monto (COP)</label>
+    <input name="monto" type="text" placeholder="$ 0" required />
+  </div>
+
+  <div>
+    <label>Cuenta</label>
+    <select name="cuenta" required>
+      <option value="BANCOLOMBIA_1423">BANCOLOMBIA_1423</option>
+      <option value="BANCOLOMBIA_7356">BANCOLOMBIA_7356</option>
+      <option value="NEQUI">NEQUI</option>
+      <option value="DAVIVIENDA">DAVIVIENDA</option>
+      <option value="EFECTIVO">EFECTIVO</option>
+      <option value="EFECTY">EFECTY</option>
+    </select>
+  </div>
+
+  <div>
+    <label>Método</label>
+    <select name="metodo" required>
+      <option value="PAGO">PAGO</option>
+      <option value="ENVIO">ENVIO</option>
+      <option value="TARJETA">TARJETA</option>
+      <option value="RETIRO">RETIRO</option>
+    </select>
+  </div>
+
+  <div>
+    <label>Semestre</label>
+    <select name="semestre" required>
+      <option value="126">126</option><option value="226">226</option>
+      <option value="326">326</option><option value="426">426</option>
+      <option value="526">526</option>
+    </select>
+  </div>
+
+  <div>
+    <label>Categoría</label>
+    <input name="categoria" type="text" placeholder="ALQUILER / SERVICIOS / ..." required />
+  </div>
+
+  <div>
+    <label>Razón</label>
+    <input name="razon" type="text" placeholder="DETALLE (usa el formato que definiste)" required />
+    <p class="muted">Si hay MES: usa RAZON_MES. Si es CARROS: NOMBRECARRO_MOTIVO_RAZON.</p>
+  </div>
+
+  <div>
+    <label>Autorizó</label>
+    <select name="autorizo" required>
+      <option>JESÚS</option><option>FELIPE</option><option>MARLON</option>
+      <option>MONICA</option><option>AUTOMATICO</option>
+    </select>
+  </div>
+
+  <div>
+    <label>Responsable</label>
+    <select name="responsable" required>
+      <option>JESÚS</option><option>FELIPE</option><option>MARLON</option>
+      <option>EMPRESA</option>
+    </select>
+  </div>
+
+  <div class="mt">
+    <button type="submit">Guardar</button>
+    <a href="/egresos" style="margin-left:8px"><button type="button">Ver Egresos</button></a>
+  </div>
+</form>
+{% endblock %}

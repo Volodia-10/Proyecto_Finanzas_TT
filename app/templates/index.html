@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Inicio – Proyecto Finanzas TT{% endblock %}
+{% block content %}
+  <h1>Proyecto Finanzas TT</h1>
+  <p class="muted">Panel rápido</p>
+  <div class="grid">
+    <a href="/ingresos/nuevo"><button>Registrar Ingreso</button></a>
+    <a href="/egresos/nuevo"><button>Registrar Egreso</button></a>
+    <a href="/ingresos"><button>Ver Ingresos</button></a>
+    <a href="/egresos"><button>Ver Egresos</button></a>
+    <a href="/resumen_ingresos"><button>Resumen Ingresos</button></a>
+    <a href="/resumen_egresos"><button>Resumen Egresos</button></a>
+  </div>
+{% endblock %}
+
