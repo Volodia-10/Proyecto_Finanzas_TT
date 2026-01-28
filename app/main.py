@@ -1,16 +1,21 @@
-
-from fastapi import FastAPI, HTTPException, Query
+from __future__ import annotations
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field, validator
-from typing import Optional, List, Dict, Any
-from decimal import Decimal, ROUND_HALF_UP
-from zoneinfo import ZoneInfo
-from datetime import datetime
-import re, io, csv, unicodedata
 
-app = FastAPI(title="Proyecto_Finanzas_TT", version="0.2.0")
+from typing import Any, List, Optional
+from decimal import Decimal
+from datetime import datetime
+from zoneinfo import ZoneInfo
+import io, csv
+
+# ==== BD ====
+from sqlalchemy.orm import Session
+from .database import Base, engine, get_db
+from .models import Ingreso, Egreso
+
+app = FastAPI(title="Proyecto_Finanzas_TT", version="0.3.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -20,135 +25,32 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Archivos estáticos
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# ---- In-memory DB ----
-INGRESOS: List[Dict[str, Any]] = []
-EGRESOS: List[Dict[str, Any]] = []
-
+# ===== Helpers de tiempo y formato =====
 TZ = ZoneInfo("America/Bogota")
-COP_TWO = Decimal("0.01")
 
-def to_decimal_2(value: Decimal) -> Decimal:
-    return value.quantize(COP_TWO, rounding=ROUND_HALF_UP)
+def now_bogota() -> datetime:
+    return datetime.now(TZ)
 
-def calcular_neto_wompi(monto: Decimal, wompi_metodo: Optional[str]) -> Decimal:
-    comision_base = (monto * Decimal("0.0265")) + Decimal("700")
-    iva = comision_base * Decimal("0.19")
-    descuento = comision_base + iva
-    if wompi_metodo == "TC":
-        descuento += monto * Decimal("0.015")
-    neto = monto - descuento
-    return to_decimal_2(neto)
+def fmt_dt(dt: datetime) -> str:
+    # dd/mm/aaaa hh:mm:ss
+    return dt.astimezone(TZ).strftime("%d/%m/%Y %H:%M:%S")
 
-def now_formatted() -> str:
-    dt = datetime.now(TZ)
-    return dt.strftime("%d/%m/%Y %H:%M:%S")
+def two_dec(v: Decimal) -> Decimal:
+    return v.quantize(Decimal("0.01"))
 
-def normalize_upper(s: Optional[str]) -> Optional[str]:
-    if s is None:
-        return s
-    return s.upper()
+# ===== Crear tablas al arrancar =====
+@app.on_event("startup")
+def on_startup():
+    Base.metadata.create_all(bind=engine)
 
-def strip_accents(s: str) -> str:
-    return ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn')
-
-def parse_monto_str_to_decimal(monto_str: str) -> Decimal:
-    clean = re.sub(r"[^0-9,]", "", monto_str)
-    clean_dot = clean.replace(",", ".")
-    dec = Decimal(clean_dot)
-    return to_decimal_2(dec)
-
-# ---------- MODELS (INGRESOS) ----------
-class IngresoIn(BaseModel):
-    monto: str = Field(...)
-    semestre: str
-    cuenta: str
-    detalle: str
-    wompi_metodo: Optional[str] = None
-    incluir_linea_usuario: bool = False
-    linea: Optional[str] = None
-    usuario: Optional[str] = None
-
-    @validator("monto")
-    def validate_monto(cls, v):
-        if not isinstance(v, str):
-            raise ValueError("monto debe ser string formateado")
-        clean = re.sub(r"[^0-9,]", "", v)
-        if clean.count(",") > 1:
-            raise ValueError("Formato de monto inválido")
-        clean_dot = clean.replace(",", ".")
-        try:
-            dec = Decimal(clean_dot)
-        except Exception:
-            raise ValueError("Monto inválido")
-        if dec <= 0:
-            raise ValueError("Monto debe ser positivo")
-        return v
-
-class Ingreso(BaseModel):
-    fecha: str
-    cantidad: str
-    semestre: str
-    banco: str
-    metodo: str
-    linea: str
-    user: str
-    extra: str
-
-# ---------- MODELS (EGRESOS) ----------
-CATS_REQUIEREN_MES = {
-    "ADELANTO","ITAÚ-APTOS","MERCADO","PAGO_NÓMINA","VIATICOS","IMPUESTOS","SEGURIDAD_SOCIAL","PRIMAS"
-}
-CARROS_MOTIVOS = {"MANTENIMIENTO","SOAT","IMPUESTOS","TODO-RIESGO","TECNICOMECANICO"}
-CARROS_NOMBRES = {"VERSA","MAZDA","QASHQAI"}
-
-class EgresoIn(BaseModel):
-    monto: str
-    cuenta: str
-    metodo: str
-    semestre: str
-    categoria: str
-    mes: Optional[str] = None
-    nombre_carro: Optional[str] = None
-    motivo_carro: Optional[str] = None
-    razon: Optional[str] = None
-    autorizo: str
-    responsable: str
-
-    @validator("monto")
-    def validate_monto(cls, v):
-        if not isinstance(v, str):
-            raise ValueError("monto debe ser string formateado")
-        clean = re.sub(r"[^0-9,]", "", v)
-        if clean.count(",") > 1:
-            raise ValueError("Formato de monto inválido")
-        clean_dot = clean.replace(",", ".")
-        try:
-            dec = Decimal(clean_dot)
-        except Exception:
-            raise ValueError("Monto inválido")
-        if dec <= 0:
-            raise ValueError("Monto debe ser positivo")
-        return v
-
-class Egreso(BaseModel):
-    fecha: str
-    cuenta: str
-    metodo: str
-    cantidad: str
-    cantidad_real: str
-    semestre: str
-    categoria: str
-    razon: str
-    autorizo: str
-    responsable: str
-
+# ====== PÁGINAS (HTML) ======
 @app.get("/")
-def index():
+def home():
     return FileResponse("static/index.html")
 
-# ---------- INGRESOS ROUTES ----------
 @app.get("/ingresos/nuevo")
 def ingresos_nuevo():
     return FileResponse("static/ingresos_nuevo.html")
@@ -161,66 +63,6 @@ def ingresos_tabla():
 def ingresos_resumen():
     return FileResponse("static/resumen_ingresos.html")
 
-@app.get("/api/ingresos")
-def api_list_ingresos():
-    def parse_fecha(fecha: str):
-        return datetime.strptime(fecha, "%d/%m/%Y %H:%M:%S")
-    ordered = sorted(INGRESOS, key=lambda x: parse_fecha(x["fecha"]), reverse=True)
-    return JSONResponse(content=ordered)
-
-@app.post("/api/ingresos")
-def api_create_ingreso(data: IngresoIn):
-    semestre = normalize_upper(data.semestre.strip())
-    cuenta = normalize_upper(data.cuenta.strip())
-    detalle = normalize_upper(data.detalle.strip())
-    wompi_metodo = normalize_upper(data.wompi_metodo) if data.wompi_metodo else None
-    incluir_lu = bool(data.incluir_linea_usuario)
-
-    monto = parse_monto_str_to_decimal(data.monto)
-
-    linea_final = None
-    usuario_final = None
-    semestre_final = semestre
-
-    if detalle == "PAGO INTERESES":
-        semestre_final = "GENERAL"
-        linea_final = "GENERAL"
-        usuario_final = "INTERESES"
-    else:
-        if incluir_lu:
-            if not data.linea or not data.usuario:
-                raise HTTPException(status_code=422, detail="LÍNEA y USUARIO son obligatorios cuando se marca la casilla.")
-            linea_final = normalize_upper(data.linea.strip())
-            usuario_final = normalize_upper(data.usuario.strip())
-        else:
-            linea_final = "PENDIENTE"
-            usuario_final = "PENDIENTE"
-
-    if (cuenta.startswith("BANCOLOMBIA_")) and (detalle == "WOMPI"):
-        if wompi_metodo not in ("PSE", "TC"):
-            raise HTTPException(status_code=422, detail="MÉTODO DE PAGO (WOMPI) es obligatorio (PSE o TC).")
-        neto = calcular_neto_wompi(monto, wompi_metodo)
-        metodo_tabla = "WOMPI"
-    else:
-        neto = to_decimal_2(monto)
-        metodo_tabla = detalle
-
-    fecha = now_formatted()
-    reg = Ingreso(
-        fecha=fecha,
-        cantidad=f"{neto:.2f}".replace(".", ","),
-        semestre=semestre_final,
-        banco=cuenta,
-        metodo=metodo_tabla,
-        linea=linea_final,
-        user=usuario_final,
-        extra="-",
-    ).dict()
-
-    INGRESOS.append(reg)
-    return {"ok": True, "message": "INGRESO REGISTRADO CON ÉXITO"}
-
-# ---------- EGRESOS ROUTES ----------
 @app.get("/egresos/nuevo")
 def egresos_nuevo():
     return FileResponse("static/egresos_nuevo.html")
@@ -233,165 +75,205 @@ def egresos_tabla():
 def egresos_resumen():
     return FileResponse("static/resumen_egresos.html")
 
-@app.get("/api/egresos")
-def api_list_egresos():
-    def parse_fecha(fecha: str):
-        return datetime.strptime(fecha, "%d/%m/%Y %H:%M:%S")
-    ordered = sorted(EGRESOS, key=lambda x: parse_fecha(x["fecha"]), reverse=True)
-    return JSONResponse(content=ordered)
+# ========= API INGRESOS =========
+@app.post("/api/ingresos")
+def api_crear_ingreso(payload: dict, db: Session = Depends(get_db)):
+    # payload keys: monto, semestre, cuenta, detalle, wompi_mp?, linea?, user?
+    monto_raw = str(payload.get("monto", "0")).replace(".", "").replace("$", "").replace(",", ".").strip()
+    monto = Decimal(monto_raw or "0")
 
+    semestre = (payload.get("semestre") or "").upper()
+    banco    = (payload.get("cuenta") or "").upper()
+    metodo   = (payload.get("detalle") or "").upper()
+    wompi_mp = (payload.get("wompi_mp") or "").upper()
+
+    linea = (payload.get("linea") or "PENDIENTE").upper()
+    user  = (payload.get("user")  or "PENDIENTE").upper()
+
+    # WOMPI: neto
+    cantidad = monto
+    if metodo == "WOMPI" and wompi_mp in ("PSE", "TC"):
+        comision_base = monto * Decimal("0.0265") + Decimal("700")
+        iva = comision_base * Decimal("0.19")
+        descuento = comision_base + iva
+        if wompi_mp == "TC":
+            descuento += monto * Decimal("0.015")
+        cantidad = monto - descuento
+
+    # PAGO INTERESES fuerza GENERAL/INTERESES
+    if metodo == "PAGO INTERESES":
+        semestre, linea, user = "GENERAL", "GENERAL", "INTERESES"
+
+    ing = Ingreso(
+        fecha=now_bogota(),
+        cantidad=two_dec(cantidad),
+        semestre=semestre,
+        banco=banco,
+        metodo=metodo,
+        linea=linea,
+        user=user,
+        extra="-",
+    )
+    db.add(ing); db.commit(); db.refresh(ing)
+
+    return {"ok": True, "row": {
+        "FECHA": fmt_dt(ing.fecha), "CANTIDAD": float(ing.cantidad),
+        "SEMESTRE": ing.semestre, "BANCO": ing.banco, "METODO": ing.metodo,
+        "LÍNEA": ing.linea, "USER": ing.user, "EXTRA": ing.extra
+    }}
+
+@app.get("/api/ingresos")
+def api_list_ingresos(
+    semestre: Optional[str] = None,
+    banco: Optional[str] = None,
+    metodo: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
+    q = db.query(Ingreso).order_by(Ingreso.fecha.desc())
+    if semestre: q = q.filter(Ingreso.semestre == semestre.upper())
+    if banco:    q = q.filter(Ingreso.banco == banco.upper())
+    if metodo:   q = q.filter(Ingreso.metodo == metodo.upper())
+
+    rows = []
+    for x in q.all():
+        rows.append({
+            "FECHA": fmt_dt(x.fecha),
+            "CANTIDAD": float(x.cantidad),
+            "SEMESTRE": x.semestre,
+            "BANCO": x.banco,
+            "METODO": x.metodo,
+            "LÍNEA": x.linea,
+            "USER": x.user,
+            "EXTRA": x.extra,
+        })
+    return {"rows": rows}
+
+# Export CSV/XLSX (INGRESOS)
+@app.get("/api/ingresos/export.csv")
+def export_ingresos_csv(db: Session = Depends(get_db)):
+    q = db.query(Ingreso).order_by(Ingreso.fecha.desc()).all()
+    out = io.StringIO()
+    w = csv.writer(out)
+    w.writerow(["FECHA","CANTIDAD","SEMESTRE","BANCO","MÉTODO","LÍNEA","USER","EXTRA"])
+    for x in q:
+        w.writerow([fmt_dt(x.fecha), f"{x.cantidad:.2f}", x.semestre, x.banco, x.metodo, x.linea, x.user, x.extra])
+    out.seek(0)
+    return StreamingResponse(out, media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="ingresos.csv"'}
+    )
+
+@app.get("/api/ingresos/export.xlsx")
+def export_ingresos_xlsx(db: Session = Depends(get_db)):
+    from openpyxl import Workbook
+    wb = Workbook(); ws = wb.active; ws.title = "INGRESOS"
+    ws.append(["FECHA","CANTIDAD","SEMESTRE","BANCO","MÉTODO","LÍNEA","USER","EXTRA"])
+    for x in db.query(Ingreso).order_by(Ingreso.fecha.desc()).all():
+        ws.append([fmt_dt(x.fecha), float(x.cantidad), x.semestre, x.banco, x.metodo, x.linea, x.user, x.extra])
+    bio = io.BytesIO(); wb.save(bio); bio.seek(0)
+    return StreamingResponse(bio,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": 'attachment; filename="ingresos.xlsx"'}
+    )
+
+# ========= API EGRESOS =========
 @app.post("/api/egresos")
-def api_create_egreso(data: EgresoIn):
-    cuenta = normalize_upper(data.cuenta.strip())
-    metodo = normalize_upper(data.metodo.strip())
-    semestre = normalize_upper(data.semestre.strip())
-    categoria = normalize_upper(data.categoria.strip())
+def api_crear_egreso(payload: dict, db: Session = Depends(get_db)):
+    monto_raw = str(payload.get("monto", "0")).replace(".", "").replace("$", "").replace(",", ".").strip()
+    monto = Decimal(monto_raw or "0")
 
-    mes = normalize_upper(data.mes) if data.mes else None
-    nombre_carro = normalize_upper(data.nombre_carro) if data.nombre_carro else None
-    motivo_carro = normalize_upper(data.motivo_carro) if data.motivo_carro else None
-    razon = normalize_upper(data.razon) if data.razon else None
-    autorizo = normalize_upper(data.autorizo.strip())
-    responsable = normalize_upper(data.responsable.strip())
+    cuenta   = (payload.get("cuenta") or "").upper()
+    metodo   = (payload.get("metodo") or "").upper()
+    semestre = (payload.get("semestre") or "").upper()
+    categoria= (payload.get("categoria") or "").upper()
 
-    monto = parse_monto_str_to_decimal(data.monto)
+    mes          = (payload.get("mes") or "").upper()
+    razon_val    = (payload.get("razon") or "").upper()
+    nombre_carro = (payload.get("nombre_carro") or "").upper()
+    motivo_carro = (payload.get("motivo_carro") or "").upper()
 
-    if categoria in CATS_REQUIEREN_MES and not mes:
-        raise HTTPException(status_code=422, detail="MES es obligatorio para esta categoría.")
+    autorizo    = (payload.get("autorizo") or "").upper()
+    responsable = (payload.get("responsable") or "").upper()
+
+    # CANTIDAD_REAL: 4x1000 salvo EFECTIVO/EFECTY
+    if cuenta in ("EFECTIVO", "EFECTY"):
+        cantidad_real = monto
+    else:
+        cantidad_real = monto * Decimal("1.004")
+
+    # RAZÓN con reglas
     if categoria == "CARROS":
-        if (nombre_carro not in CARROS_NOMBRES) or (motivo_carro not in CARROS_MOTIVOS):
-            raise HTTPException(status_code=422, detail="NOMBRE CARRO y MOTIVO son obligatorios y válidos.")
-        if not razon:
-            raise HTTPException(status_code=422, detail="RAZÓN es obligatoria para CARROS.")
-    if categoria in {"ADELANTO","PAGO_NÓMINA","VIATICOS","PRIMAS","BASE DE DATOS","ITAÚ-APTOS","MERCADO","SOFTWARE","IMPUESTOS","DEVOLUCIÓN"}:
-        if not razon:
-            raise HTTPException(status_code=422, detail="RAZÓN es obligatoria para esta categoría.")
-
-    if categoria == "SEGURIDAD_SOCIAL":
+        razon_final = f"{nombre_carro}_{motivo_carro}_{razon_val}".strip("_")
+    elif categoria == "SEGURIDAD_SOCIAL":
         razon_final = f"SS_{mes}_2026"
-    elif categoria == "CARROS":
-        razon_final = f"{nombre_carro}_{motivo_carro}_{razon}"
+    elif categoria in {"ADELANTO","ITAU-APTOS","MERCADO","PAGO_NÓMINA","VIATICOS","IMPUESTOS","PRIMAS"}:
+        razon_final = f"{razon_val}_{mes}" if mes else razon_val
     elif categoria == "CESANTIAS":
         razon_final = "2025"
-    elif categoria in CATS_REQUIEREN_MES:
-        razon_final = f"{razon}_{mes}"
     else:
-        razon_final = razon or "-"
+        razon_final = razon_val
 
-    cantidad = to_decimal_2(monto)
-    if cuenta == "EFECTY":
-        cantidad_real = cantidad
-    else:
-        cantidad_real = to_decimal_2(monto * Decimal("1.004"))
+    eg = Egreso(
+        fecha=now_bogota(),
+        cuenta=cuenta, metodo=metodo,
+        cantidad=two_dec(monto), cantidad_real=two_dec(cantidad_real),
+        semestre=semestre, categoria=categoria, razon=razon_final,
+        autorizo=autorizo, responsable=responsable
+    )
+    db.add(eg); db.commit(); db.refresh(eg)
 
-    fecha = now_formatted()
-    reg = Egreso(
-        fecha=fecha,
-        cuenta=cuenta,
-        metodo=metodo,
-        cantidad=f"{cantidad:.2f}".replace(".", ","),
-        cantidad_real=f"{cantidad_real:.2f}".replace(".", ","),
-        semestre=semestre,
-        categoria=categoria,
-        razon=razon_final,
-        autorizo=autorizo,
-        responsable=responsable,
-    ).dict()
-    EGRESOS.append(reg)
-    return {"ok": True, "message": "EGRESO REGISTRADO CON ÉXITO"}
+    return {"ok": True, "row": {
+        "FECHA": fmt_dt(eg.fecha), "CUENTA": eg.cuenta, "MÉTODO": eg.metodo,
+        "CANTIDAD": float(eg.cantidad), "CANTIDAD_REAL": float(eg.cantidad_real),
+        "SEMESTRE": eg.semestre, "CATEGORIA": eg.categoria, "RAZÓN": eg.razon,
+        "AUTORIZÓ": eg.autorizo, "RESPONSABLE": eg.responsable
+    }}
 
-# ---------- EXPORT HELPERS ----------
-def apply_filters(rows: List[Dict[str,str]], filters: Dict[int,str], columns: List[str]) -> List[Dict[str,str]]:
-    if not filters:
-        return rows
-    res = []
-    for r in rows:
-        ok = True
-        for idx, fval in filters.items():
-            if fval is None or fval == "":
-                continue
-            col = columns[idx]
-            cell = str(r.get(col, ""))
-            if strip_accents(fval.lower()) not in strip_accents(cell.lower()):
-                ok = False
-                break
-        if ok:
-            res.append(r)
-    return res
+@app.get("/api/egresos")
+def api_list_egresos(
+    semestre: Optional[str] = None,
+    cuenta: Optional[str] = None,
+    categoria: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
+    q = db.query(Egreso).order_by(Egreso.fecha.desc())
+    if semestre:  q = q.filter(Egreso.semestre == semestre.upper())
+    if cuenta:    q = q.filter(Egreso.cuenta == cuenta.upper())
+    if categoria: q = q.filter(Egreso.categoria == categoria.upper())
 
-def export_csv(rows: List[Dict[str, str]], headers: List[str]) -> StreamingResponse:
-    buf = io.StringIO()
-    w = csv.writer(buf)
-    w.writerow(headers)
-    for r in rows:
-        w.writerow([r.get(h, "") for h in headers])
-    buf.seek(0)
-    return StreamingResponse(iter([buf.read()]), media_type="text/csv")
+    rows = []
+    for x in q.all():
+        rows.append({
+            "FECHA": fmt_dt(x.fecha), "CUENTA": x.cuenta, "MÉTODO": x.metodo,
+            "CANTIDAD": float(x.cantidad), "CANTIDAD_REAL": float(x.cantidad_real),
+            "SEMESTRE": x.semestre, "CATEGORIA": x.categoria, "RAZÓN": x.razon,
+            "AUTORIZÓ": x.autorizo, "RESPONSABLE": x.responsable
+        })
+    return {"rows": rows}
 
-def export_xlsx(rows: List[Dict[str, str]], headers: List[str], filename: str) -> StreamingResponse:
-    try:
-        import openpyxl
-        from openpyxl.workbook import Workbook
-    except Exception:
-        return export_csv(rows, headers)
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "DATA"
-    ws.append(headers)
-    for r in rows:
-        ws.append([r.get(h, "") for h in headers])
-    stream = io.BytesIO()
-    wb.save(stream)
-    stream.seek(0)
-    return StreamingResponse(stream, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={
-        "Content-Disposition": f'attachment; filename="{filename}"'
-    })
+# Export CSV/XLSX (EGRESOS)
+@app.get("/api/egresos/export.csv")
+def export_egresos_csv(db: Session = Depends(get_db)):
+    q = db.query(Egreso).order_by(Egreso.fecha.desc()).all()
+    out = io.StringIO(); w = csv.writer(out)
+    w.writerow(["FECHA","CUENTA","MÉTODO","CANTIDAD","CANTIDAD_REAL","SEMESTRE","CATEGORÍA","RAZÓN","AUTORIZÓ","RESPONSABLE"])
+    for x in q:
+        w.writerow([fmt_dt(x.fecha), x.cuenta, x.metodo, f"{x.cantidad:.2f}", f"{x.cantidad_real:.2f}",
+                    x.semestre, x.categoria, x.razon, x.autorizo, x.responsable])
+    out.seek(0)
+    return StreamingResponse(out, media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="egresos.csv"'}
+    )
 
-@app.get("/api/egresos/export")
-def export_egresos(fmt: str = Query("csv"),
-                   f0: Optional[str] = None, f1: Optional[str] = None, f2: Optional[str] = None,
-                   f3: Optional[str] = None, f4: Optional[str] = None, f5: Optional[str] = None,
-                   f6: Optional[str] = None, f7: Optional[str] = None, f8: Optional[str] = None,
-                   f9: Optional[str] = None):
-    headers = ["FECHA","CUENTA","MÉTODO","CANTIDAD","CANTIDAD REAL","SEMESTRE","CATEGORÍA","RAZÓN","AUTORIZÓ","RESPONSABLE"]
-    rows = [{
-        "FECHA": r["fecha"],
-        "CUENTA": r["cuenta"],
-        "MÉTODO": r["metodo"],
-        "CANTIDAD": r["cantidad"],
-        "CANTIDAD REAL": r["cantidad_real"],
-        "SEMESTRE": r["semestre"],
-        "CATEGORÍA": r["categoria"],
-        "RAZÓN": r["razon"],
-        "AUTORIZÓ": r["autorizo"],
-        "RESPONSABLE": r["responsable"],
-    } for r in EGRESOS]
-    filters = {i: v for i, v in enumerate([f0,f1,f2,f3,f4,f5,f6,f7,f8,f9]) if v}
-    rows = apply_filters(rows, filters, headers)
-    filename = f"EGRESOS_export.xlsx"
-    if fmt.lower() == "xlsx":
-        return export_xlsx(rows, headers, filename)
-    return export_csv(rows, headers)
-
-@app.get("/api/ingresos/export2")
-def export_ingresos2(fmt: str = Query("csv"),
-                     f0: Optional[str] = None, f1: Optional[str] = None, f2: Optional[str] = None,
-                     f3: Optional[str] = None, f4: Optional[str] = None, f5: Optional[str] = None,
-                     f6: Optional[str] = None, f7: Optional[str] = None):
-    headers = ["FECHA","CANTIDAD","SEMESTRE","BANCO","MÉTODO","LÍNEA","USER","EXTRA"]
-    rows = [{ 
-        "FECHA": r["fecha"],
-        "CANTIDAD": r["cantidad"],
-        "SEMESTRE": r["semestre"],
-        "BANCO": r["banco"],
-        "MÉTODO": r["metodo"],
-        "LÍNEA": r["linea"],
-        "USER": r["user"],
-        "EXTRA": r.get("extra","")
-    } for r in INGRESOS]
-    filters = {i: v for i, v in enumerate([f0,f1,f2,f3,f4,f5,f6,f7]) if v}
-    rows = apply_filters(rows, filters, headers)
-    filename = f"INGRESOS_export.xlsx"
-    if fmt.lower() == "xlsx":
-        return export_xlsx(rows, headers, filename)
-    return export_csv(rows, headers)
+@app.get("/api/egresos/export.xlsx")
+def export_egresos_xlsx(db: Session = Depends(get_db)):
+    from openpyxl import Workbook
+    wb = Workbook(); ws = wb.active; ws.title = "EGRESOS"
+    ws.append(["FECHA","CUENTA","MÉTODO","CANTIDAD","CANTIDAD_REAL","SEMESTRE","CATEGORÍA","RAZÓN","AUTORIZÓ","RESPONSABLE"])
+    for x in db.query(Egreso).order_by(Egreso.fecha.desc()).all():
+        ws.append([fmt_dt(x.fecha), x.cuenta, x.metodo, float(x.cantidad), float(x.cantidad_real),
+                   x.semestre, x.categoria, x.razon, x.autorizo, x.responsable])
+    bio = io.BytesIO(); wb.save(bio); bio.seek(0)
+    return StreamingResponse(bio,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": 'attachment; filename="egresos.xlsx"'}
+    )
