@@ -1,49 +1,97 @@
-/* ==== Formateo de dinero en inputs ==== */
-function formatMoneyInput(el) {
-  const raw = (el.value || "").toString();
-  const digits = raw.replace(/[^\d,.\-]/g, "");
+/* ======== Datos maestros ======== */
+const SEMESTRES = ["126","226","326","426","GENERAL"];
 
-  const lastComma = digits.lastIndexOf(",");
-  const lastDot   = digits.lastIndexOf(".");
-  let decSep = null;
-  if (lastComma !== -1 || lastDot !== -1) decSep = lastComma > lastDot ? "," : ".";
+const CUENTAS_INGRESO = [
+  "BANCOLOMBIA_1423","DAVIVIENDA_8183","NEQUI","WOMPI","EFECTIVO","EFECTY"
+];
 
-  let intPart = digits, decPart = "";
-  if (decSep) {
-    const p = digits.lastIndexOf(decSep);
-    intPart = digits.slice(0, p).replace(/[^\d\-]/g, "");
-    decPart = digits.slice(p + 1).replace(/[^\d]/g, "").slice(0, 2);
-  } else intPart = digits.replace(/[^\d\-]/g, "");
+// qué mostrar en “Detalle de cuenta / Método”
+const DETALLE_POR_CUENTA = {
+  "BANCOLOMBIA_1423": ["BANCOLOMBIA"],
+  "DAVIVIENDA_8183":  ["DAVIVIENDA"],
+  "NEQUI":            ["NEQUI"],
+  "EFECTIVO":         ["EFECTIVO"],
+  "EFECTY":           ["EFECTY"],
+  "WOMPI":            ["WOMPI PSE","WOMPI TC"] // UI muestra PSE/TC, backend recibe metodo=WOMPI + wompi_mp=PSE|TC
+};
 
-  const negative = intPart.startsWith("-");
-  const abs = intPart.replace("-", "") || "0";
-  let pretty = Number(abs).toLocaleString("es-CO");
-  if (negative) pretty = "-" + pretty;
-  if (decSep && decPart) pretty += decSep + decPart;
-  el.value = pretty;
-}
-function normalizeMoney(text) {
-  if (!text) return "0";
-  let s = text.toString().trim().replace(/[^\d,.\-]/g, "");
-  const lastComma = s.lastIndexOf(","), lastDot = s.lastIndexOf(".");
-  if (lastComma > lastDot) s = s.replace(/\./g, "").replace(",", ".");
-  else if (lastDot > lastComma) s = s.replace(/,/g, "");
-  else if (s.includes(",")) s = s.replace(/\./g, "").replace(",", ".");
-  return s || "0";
-}
-document.addEventListener("input", (e)=>{
-  if (e.target && e.target.matches("[data-money]")) formatMoneyInput(e.target);
-});
+const CUENTAS_EGRESO = [
+  "BANCOLOMBIA_1423","DAVIVIENDA_8183","NEQUI","EFECTIVO","EFECTY"
+];
 
-/* ==== Helpers de tablas ==== */
-function fmtCOP(n){ return (n ?? 0).toLocaleString("es-CO", {maximumFractionDigits:2}); }
-function el(tag, attrs={}, ...children){
-  const node = document.createElement(tag);
-  Object.entries(attrs).forEach(([k,v])=>{
-    if(k==="class") node.className=v;
-    else if(k==="html") node.innerHTML=v;
-    else node.setAttribute(k,v);
+const METODOS_EGRESO = ["PAGO","COMPRA","TRANSFERENCIA","GIRO","OTRO"];
+
+// *** Categorías (las que usabas en tu main.py “bueno”) ***
+const CATEGORIAS_EGRESO = [
+  "ALQUILER / SERVICIO",
+  "CARROS",
+  "SEGURIDAD_SOCIAL",
+  "ADELANTO",
+  "ITAU-APTOS",
+  "MERCADO",
+  "PAGO_NÓMINA",
+  "VIATICOS",
+  "IMPUESTOS",
+  "PRIMAS",
+  "CESANTIAS",
+  "OTROS"
+];
+
+const PERSONAS = ["JESÚS","TT","PENDIENTE"];
+
+/* ======== Utilidades UI ======== */
+function populateSelect(id, items, withPlaceholder = false) {
+  const sel = document.getElementById(id);
+  sel.innerHTML = "";
+  if (withPlaceholder) {
+    const opt = document.createElement("option");
+    opt.value = ""; opt.disabled = true; opt.selected = true; opt.hidden = true;
+    opt.textContent = "Selecciona…";
+    sel.appendChild(opt);
+  }
+  items.forEach(t => {
+    const o = document.createElement("option");
+    o.value = t; o.textContent = t;
+    sel.appendChild(o);
   });
-  children.forEach(c => node.append(c));
-  return node;
+}
+function setPlaceholder(id) {
+  const sel = document.getElementById(id);
+  sel.innerHTML = "";
+  const opt = document.createElement("option");
+  opt.value = ""; opt.disabled = true; opt.selected = true; opt.hidden = true;
+  opt.textContent = "Selecciona…";
+  sel.appendChild(opt);
+}
+function val(id){ return document.getElementById(id).value; }
+function getSel(id){ const v = val(id); return v === "" ? "" : v; }
+
+/* ======== Máscara COP ======== */
+function attachMoneyMask(id){
+  const el = document.getElementById(id);
+  el.addEventListener("input", () => {
+    const digits = el.value.replace(/[^\d]/g,"");
+    if (!digits) { el.value = "$ 0"; return; }
+    el.value = "$ " + Number(digits).toLocaleString("es-CO");
+  });
+  // estado inicial
+  if (!el.value) el.value = "$ 0";
+}
+function getMoneyValue(id){
+  const el = document.getElementById(id);
+  const digits = (el.value || "").replace(/[^\d]/g,"");
+  return digits ? digits : "0";
+}
+
+/* ======== Extras para reglas de servidor ======== */
+function extraMesDesdeRazon(razon){
+  // si razón tiene _MES al final (EJ: DETALLE_JUNIO) intentamos extraerlo
+  const m = razon.split("_").pop();
+  const meses = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
+  return meses.includes(m?.toUpperCase()) ? m.toUpperCase() : "";
+}
+function extraCarroDesdeRazon(razon){
+  // formato NOMBRECARRO_MOTIVO_RAZON
+  const parts = razon.split("_");
+  return { nombre: parts[0] || "", motivo: parts[1] || "" };
 }

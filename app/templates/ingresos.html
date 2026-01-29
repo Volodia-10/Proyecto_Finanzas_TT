@@ -1,33 +1,116 @@
 {% extends "base.html" %}
 {% block title %}Ingresos{% endblock %}
 {% block content %}
-<h2>Ingresos</h2>
-<p class="muted">
-  <a class="ok" href="/ingresos/export.csv">Descargar CSV</a>
-  &nbsp;&middot;&nbsp;
-  <a class="ok" href="/ingresos/export.xlsx">Descargar XLSX</a>
-</p>
+<h1>Ingresos</h1>
 
-<table>
+<div class="row mt">
+  <div class="grid">
+    <div>
+      <label>Semestre</label>
+      <select id="fSemestre">
+        <option value="" selected disabled hidden>Filtrar…</option>
+      </select>
+    </div>
+    <div>
+      <label>Banco / Cuenta</label>
+      <select id="fBanco">
+        <option value="" selected disabled hidden>Filtrar…</option>
+      </select>
+    </div>
+    <div>
+      <label>Método</label>
+      <select id="fMetodo">
+        <option value="" selected disabled hidden>Filtrar…</option>
+      </select>
+    </div>
+
+    <div class="row">
+      <a class="btn" href="/ingresos/nuevo">+ Nuevo ingreso</a>
+      <a class="btn" href="/api/ingresos/export.csv">CSV</a>
+      <a class="btn" href="/api/ingresos/export.xlsx">XLSX</a>
+      <button class="btn" id="btnLimpiar">Limpiar filtros</button>
+    </div>
+  </div>
+</div>
+
+<table id="tblIngresos" class="mt">
   <thead>
     <tr>
-      <th>Fecha</th><th>Cantidad</th><th>Semestre</th><th>Banco</th>
-      <th>Método</th><th>Línea</th><th>User</th><th>Extra</th>
+      <th>Fecha</th>
+      <th>Monto (COP)</th>
+      <th>Semestre</th>
+      <th>Banco</th>
+      <th>Método</th>
+      <th>Línea</th>
+      <th>User</th>
+      <th>Extra</th>
     </tr>
   </thead>
-  <tbody>
-    {% for r in registros %}
-    <tr>
-      <td>{{ r.fecha.strftime("%d/%m/%Y %H:%M:%S") if r.fecha else "" }}</td>
-      <td>${{ '%.2f'|format(r.cantidad or 0) }}</td>
-      <td>{{ r.semestre }}</td>
-      <td>{{ r.banco }}</td>
-      <td>{{ r.metodo }}</td>
-      <td>{{ r.linea }}</td>
-      <td>{{ r.user }}</td>
-      <td>{{ r.extra }}</td>
-    </tr>
-    {% endfor %}
-  </tbody>
+  <tbody></tbody>
 </table>
+
+<script>
+(function () {
+  const $ = (q, d=document)=>d.querySelector(q);
+  const nfCOP = new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0});
+
+  const fSem = $('#fSemestre'), fBan = $('#fBanco'), fMet = $('#fMetodo');
+  const tbody = $('#tblIngresos tbody');
+  const btnLimpiar = $('#btnLimpiar');
+
+  function params() {
+    const p = new URLSearchParams();
+    if (fSem.value) p.set('semestre', fSem.value);
+    if (fBan.value) p.set('banco',    fBan.value);
+    if (fMet.value) p.set('metodo',   fMet.value);
+    return p.toString();
+  }
+
+  function fillOptions(rows){
+    const sem = new Set(), ban = new Set(), met = new Set();
+    rows.forEach(r => {
+      if (r.SEMESTRE) sem.add(r.SEMESTRE);
+      if (r.BANCO)    ban.add(r.BANCO);
+      if (r.METODO)   met.add(r.METODO);
+    });
+    function setOpts(sel, set){
+      const cur = sel.value; sel.innerHTML = '<option value="" selected disabled hidden>Filtrar…</option>';
+      [...set].sort().forEach(v=>{
+        const o = document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o);
+      });
+      // no preseleccionar nada
+      sel.value = "";
+    }
+    setOpts(fSem, sem); setOpts(fBan, ban); setOpts(fMet, met);
+  }
+
+  async function load(initial=false){
+    const url = '/api/ingresos' + (initial ? '' : (params() ? `?${params()}` : ''));
+    const res = await fetch(url); const data = await res.json();
+    const rows = data.rows || [];
+    if (initial) fillOptions(rows);
+    tbody.innerHTML = rows.map(r=>`
+      <tr>
+        <td>${r.FECHA}</td>
+        <td style="text-align:right">${nfCOP.format(r.CANTIDAD)}</td>
+        <td>${r.SEMESTRE}</td>
+        <td>${r.BANCO}</td>
+        <td>${r.METODO}</td>
+        <td>${r["LÍNEA"]}</td>
+        <td>${r.USER}</td>
+        <td>${r.EXTRA ?? ""}</td>
+      </tr>
+    `).join('');
+  }
+
+  fSem.addEventListener('change', ()=>load());
+  fBan.addEventListener('change', ()=>load());
+  fMet.addEventListener('change', ()=>load());
+  btnLimpiar.addEventListener('click', ()=>{
+    fSem.value=""; fBan.value=""; fMet.value=""; load(true);
+  });
+
+  load(true);
+})();
+</script>
 {% endblock %}

@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}+ Egreso{% endblock %}
+{% block content %}
+<h1>Nuevo Egreso</h1>
+
+<div class="grid">
+  <label>
+    Monto (COP)
+    <input id="eg_monto" type="text" inputmode="numeric" placeholder="$ 0">
+  </label>
+
+  <label>
+    Cuenta
+    <select id="eg_cuenta"></select>
+  </label>
+
+  <label>
+    Método
+    <select id="eg_metodo"></select>
+  </label>
+
+  <label>
+    Semestre
+    <select id="eg_semestre"></select>
+  </label>
+
+  <label>
+    Categoría
+    <select id="eg_categoria"></select>
+  </label>
+
+  <label>
+    Razón
+    <input id="eg_razon" type="text" placeholder="DETALLE (usa el formato)">
+  </label>
+
+  <label>
+    Autorizó
+    <select id="eg_autorizo"></select>
+  </label>
+
+  <label>
+    Responsable
+    <select id="eg_responsable"></select>
+  </label>
+</div>
+
+<p class="muted mt">
+  Si hay MES: usa <strong>RAZON_MES</strong>.<br/>
+  Si es <strong>CARROS</strong>: <strong>NOMBRECARRO_MOTIVO_RAZON</strong>.
+</p>
+
+<div class="row mt">
+  <button id="btn_eg_guardar">Guardar</button>
+  <a class="btn" href="/egresos">Ver Egresos</a>
+</div>
+
+<script>
+  // selects sin preselección
+  populateSelect("eg_cuenta",    CUENTAS_EGRESO, true);
+  populateSelect("eg_metodo",    METODOS_EGRESO, true);
+  populateSelect("eg_semestre",  SEMESTRES, true);
+  populateSelect("eg_categoria", CATEGORIAS_EGRESO, true);
+  populateSelect("eg_autorizo",  PERSONAS, true);
+  populateSelect("eg_responsable", PERSONAS, true);
+
+  // máscara COP
+  attachMoneyMask("eg_monto");
+
+  document.getElementById("btn_eg_guardar").addEventListener("click", async () => {
+    const monto   = getMoneyValue("eg_monto");
+    const cuenta  = getSel("eg_cuenta");
+    const metodo  = getSel("eg_metodo");
+    const semestre= getSel("eg_semestre");
+    const categoria = getSel("eg_categoria");
+    const razon     = val("eg_razon").trim();
+    const autorizo  = getSel("eg_autorizo");
+    const responsable = getSel("eg_responsable");
+
+    if (!monto || !cuenta || !metodo || !semestre || !categoria || !razon || !autorizo || !responsable) {
+      alert("Completa todos los campos."); return;
+    }
+
+    // extras usados por reglas de servidor (si aplica)
+    const payload = {
+      monto, cuenta, metodo, semestre, categoria, razon,
+      autorizo, responsable,
+      mes: extraMesDesdeRazon(razon),
+      nombre_carro: extraCarroDesdeRazon(razon).nombre,
+      motivo_carro: extraCarroDesdeRazon(razon).motivo
+    };
+
+    const r = await fetch("/api/egresos", {
+      method:"POST", headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify(payload)
+    });
+    const data = await r.json();
+    if (data.ok) { alert("Egreso guardado."); window.location.href="/egresos"; }
+    else { alert("Error creando egreso"); }
+  });
+</script>
+{% endblock %}
