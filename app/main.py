@@ -17,11 +17,12 @@ from sqlalchemy.orm import Session
 from .database import Base, engine, get_db
 from .models import Ingreso, Egreso
 
-ROOT = Path(__file__).resolve().parent.parent
-TEMPLATES_DIR = str(ROOT / "templates")
-STATIC_DIR    = str(ROOT.parent / "static") if (ROOT / "static").exists() is False else str(ROOT / "static")
+# Rutas correctas a /app
+BASE_DIR      = Path(__file__).resolve().parent              # app/
+TEMPLATES_DIR = str(BASE_DIR / "templates")                  # app/templates
+STATIC_DIR    = str(BASE_DIR / "static")                     # app/static
 
-app = FastAPI(title="Proyecto_Finanzas_TT", version="0.3.1")
+app = FastAPI(title="Proyecto_Finanzas_TT", version="0.3.2")
 
 app.add_middleware(
     CORSMiddleware,
@@ -29,7 +30,7 @@ app.add_middleware(
     allow_methods=["*"], allow_headers=["*"],
 )
 
-# estáticos
+# estáticos y jinja
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
@@ -39,12 +40,12 @@ def now_bogota() -> datetime: return datetime.now(TZ)
 def fmt_dt(dt: datetime) -> str: return dt.astimezone(TZ).strftime("%d/%m/%Y %H:%M:%S")
 def two_dec(v: Decimal) -> Decimal: return v.quantize(Decimal("0.01"))
 
-# Crear tablas
+# Crear tablas (checkfirst)
 @app.on_event("startup")
 def on_startup():
     Base.metadata.create_all(bind=engine)
 
-# ====== PÁGINAS ======
+# ====== PÁGINAS (Jinja) ======
 @app.get("/")
 def home(request: Request):                return templates.TemplateResponse("index.html", {"request": request})
 @app.get("/ingresos/nuevo")
@@ -150,10 +151,10 @@ def api_crear_egreso(payload: dict, db: Session = Depends(get_db)):
     monto_raw = str(payload.get("monto", "0")).replace(".", "").replace("$", "").replace(",", ".").strip()
     monto = Decimal(monto_raw or "0")
 
-    cuenta   = (payload.get("cuenta") or "").upper()
-    metodo   = (payload.get("metodo") or "").upper()
-    semestre = (payload.get("semestre") or "").upper()
-    categoria= (payload.get("categoria") or "").upper()
+    cuenta    = (payload.get("cuenta") or "").upper()
+    metodo    = (payload.get("metodo") or "").upper()
+    semestre  = (payload.get("semestre") or "").upper()
+    categoria = (payload.get("categoria") or "").upper()
 
     mes          = (payload.get("mes") or "").upper()
     razon_val    = (payload.get("razon") or "").upper()
@@ -163,11 +164,10 @@ def api_crear_egreso(payload: dict, db: Session = Depends(get_db)):
     autorizo    = (payload.get("autorizo") or "").upper()
     responsable = (payload.get("responsable") or "").upper()
 
-    if cuenta in ("EFECTIVO", "EFECTY"):
-        cantidad_real = monto
-    else:
-        cantidad_real = monto * Decimal("1.004")
+    # 4x1000 salvo EFECTIVO/EFECTY
+    cantidad_real = monto if cuenta in ("EFECTIVO", "EFECTY") else (monto * Decimal("1.004"))
 
+    # RAZÓN con reglas
     if categoria == "CARROS":
         razon_final = f"{nombre_carro}_{motivo_carro}_{razon_val}".strip("_")
     elif categoria == "SEGURIDAD_SOCIAL":
@@ -239,5 +239,5 @@ def export_egresos_xlsx(db: Session = Depends(get_db)):
     bio = io.BytesIO(); wb.save(bio); bio.seek(0)
     return StreamingResponse(bio,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": 'attachment; filename="egresos.xlsx"'}
+        headers={"Content-Disposition": 'attachment; filename=\"egresos.xlsx\"'}
     )
