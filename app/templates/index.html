@@ -1,6 +1,17 @@
 {% extends "base.html" %}
-{% block title %}Inicio – Proyecto Finanzas TT{% endblock %}
 {% block content %}
-  <h1>Proyecto Finanzas TT</h1>
-  <p class="muted">Selecciona en el menú para registrar o ver información.</p>
+<h1>Proyecto_Finanzas_TT</h1>
+<div class="grid">
+  <a class="btn" href="/ingresos/nuevo">Generar Ingreso</a>
+  <a class="btn" href="/ingresos">Tabla Ingresos</a>
+  <a class="btn" href="/ingresos/resumen">Resumen Ingresos</a>
+
+  <a class="btn" href="/egresos/nuevo">Generar Egreso</a>
+  <a class="btn" href="/egresos">Tabla Egresos</a>
+  <a class="btn" href="/egresos/resumen">Resumen Egresos</a>
+
+  <a class="btn" href="/transferencias/nuevo">Transferencia Interna</a>
+  <a class="btn" href="/transferencias">Histórico Transferencias</a>
+  <a class="btn" href="/saldos">Saldos</a>
+</div>
 {% endblock %}

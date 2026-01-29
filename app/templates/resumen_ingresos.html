@@ -1,56 +1,36 @@
 {% extends "base.html" %}
-{% block title %}Resumen Ingresos{% endblock %}
 {% block content %}
-<h1>Resumen de Ingresos</h1>
-
-<div class="grid mt">
+<div class="header-actions">
+  <h1>RESUMEN_INGRESOS</h1>
   <div>
-    <h2>Por Semestre</h2>
-    <table id="tSem">
-      <thead><tr><th>Semestre</th><th>Total (COP)</th></tr></thead>
-      <tbody></tbody>
-    </table>
-  </div>
-  <div>
-    <h2>Por Banco</h2>
-    <table id="tBan">
-      <thead><tr><th>Banco</th><th>Total (COP)</th></tr></thead>
-      <tbody></tbody>
-    </table>
-  </div>
-  <div>
-    <h2>Por Método</h2>
-    <table id="tMet">
-      <thead><tr><th>Método</th><th>Total (COP)</th></tr></thead>
-      <tbody></tbody>
-    </table>
+    <a class="btn" href="/ingresos/nuevo">Generar</a>
+    <a class="btn" href="/ingresos">Tabla</a>
+    <a class="btn" href="/">Menú</a>
   </div>
 </div>
 
-<h2 class="mt">Total general</h2>
-<p id="tGen" class="ok" style="font-size:18px"></p>
+<div class="kpis">
+  <div class="kpi"><div class="kpi-title">Total Ingresos</div><div id="kpiTotal" class="kpi-value">$ 0</div></div>
+  <div class="kpi"><div class="kpi-title"># Registros</div><div id="kpiCount" class="kpi-value">0</div></div>
+  <div class="kpi"><div class="kpi-title">Ticket Promedio</div><div id="kpiAvg" class="kpi-value">$ 0</div></div>
+</div>
 
-<script>
-(async function(){
-  const nfCOP = new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0});
-  const res = await fetch('/api/ingresos'); const data = await res.json();
-  const rows = data.rows || [];
+<div class="table-wrap wide">
+  <table id="tablaResumen" class="fixed">
+    <thead>
+      <tr>
+        <th>CUENTA</th>
+        <th>126</th><th>226</th><th>326</th><th>426</th><th>526</th>
+        <th>INTERESES</th><th>TOTAL</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+    <tfoot><tr id="rowTotales"><th>TOTALES</th><th></th><th></th><th></th><th></th><th></th><th></th><th></th></tr></tfoot>
+  </table>
+</div>
 
-  const sum = (acc, k, v)=>{ acc[k]=(acc[k]||0)+Number(v||0); return acc; };
-
-  const bySem = rows.reduce((a,r)=>sum(a, r.SEMESTRE||'—', r.CANTIDAD), {});
-  const byBan = rows.reduce((a,r)=>sum(a, r.BANCO||'—',    r.CANTIDAD), {});
-  const byMet = rows.reduce((a,r)=>sum(a, r.METODO||'—',   r.CANTIDAD), {});
-  const total = rows.reduce((t,r)=>t+Number(r.CANTIDAD||0), 0);
-
-  function fill(id, obj){
-    const tbody = document.querySelector(id+' tbody');
-    const keys = Object.keys(obj).sort();
-    tbody.innerHTML = keys.map(k=>`<tr><td>${k}</td><td style="text-align:right">${nfCOP.format(obj[k])}</td></tr>`).join('');
-  }
-  fill('#tSem', bySem); fill('#tBan', byBan); fill('#tMet', byMet);
-
-  document.getElementById('tGen').textContent = nfCOP.format(total);
-})();
-</script>
+<div class="charts two">
+  <div class="chart-card"><h3>Composición por Semestre</h3><canvas id="chartStacked"></canvas></div>
+  <div class="chart-card"><h3>Distribución por Cuenta</h3><canvas id="chartDonut"></canvas></div>
+</div>
 {% endblock %}

@@ -1,116 +1,38 @@
 {% extends "base.html" %}
-{% block title %}Ingresos{% endblock %}
 {% block content %}
-<h1>Ingresos</h1>
-
-<div class="row mt">
-  <div class="grid">
-    <div>
-      <label>Semestre</label>
-      <select id="fSemestre">
-        <option value="" selected disabled hidden>Filtrar…</option>
-      </select>
-    </div>
-    <div>
-      <label>Banco / Cuenta</label>
-      <select id="fBanco">
-        <option value="" selected disabled hidden>Filtrar…</option>
-      </select>
-    </div>
-    <div>
-      <label>Método</label>
-      <select id="fMetodo">
-        <option value="" selected disabled hidden>Filtrar…</option>
-      </select>
-    </div>
-
-    <div class="row">
-      <a class="btn" href="/ingresos/nuevo">+ Nuevo ingreso</a>
-      <a class="btn" href="/api/ingresos/export.csv">CSV</a>
-      <a class="btn" href="/api/ingresos/export.xlsx">XLSX</a>
-      <button class="btn" id="btnLimpiar">Limpiar filtros</button>
-    </div>
+<div class="header-actions">
+  <h1>INGRESOS TOTALES</h1>
+  <div>
+    <a class="btn" href="/ingresos/nuevo">Generar</a>
+    <a class="btn" href="/ingresos/resumen">Resumen</a>
+    <a class="btn" href="/">Menú</a>
+    <button class="btn" id="expInCsv">Exportar CSV</button>
+    <button class="btn" id="expInXlsx">Exportar XLSX</button>
   </div>
 </div>
 
-<table id="tblIngresos" class="mt">
-  <thead>
-    <tr>
-      <th>Fecha</th>
-      <th>Monto (COP)</th>
-      <th>Semestre</th>
-      <th>Banco</th>
-      <th>Método</th>
-      <th>Línea</th>
-      <th>User</th>
-      <th>Extra</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
+<div class="filters">
+  <div class="filter-row">
+    <input data-col="0" class="filter" placeholder="Filtrar FECHA">
+    <input data-col="1" class="filter" placeholder="Filtrar CANTIDAD">
+    <input data-col="2" class="filter" placeholder="Filtrar SEMESTRE">
+    <input data-col="3" class="filter" placeholder="Filtrar BANCO">
+    <input data-col="4" class="filter" placeholder="Filtrar MÉTODO">
+    <input data-col="5" class="filter" placeholder="Filtrar LÍNEA">
+    <input data-col="6" class="filter" placeholder="Filtrar USER">
+    <input data-col="7" class="filter" placeholder="Filtrar EXTRA">
+  </div>
+</div>
 
-<script>
-(function () {
-  const $ = (q, d=document)=>d.querySelector(q);
-  const nfCOP = new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0});
-
-  const fSem = $('#fSemestre'), fBan = $('#fBanco'), fMet = $('#fMetodo');
-  const tbody = $('#tblIngresos tbody');
-  const btnLimpiar = $('#btnLimpiar');
-
-  function params() {
-    const p = new URLSearchParams();
-    if (fSem.value) p.set('semestre', fSem.value);
-    if (fBan.value) p.set('banco',    fBan.value);
-    if (fMet.value) p.set('metodo',   fMet.value);
-    return p.toString();
-  }
-
-  function fillOptions(rows){
-    const sem = new Set(), ban = new Set(), met = new Set();
-    rows.forEach(r => {
-      if (r.SEMESTRE) sem.add(r.SEMESTRE);
-      if (r.BANCO)    ban.add(r.BANCO);
-      if (r.METODO)   met.add(r.METODO);
-    });
-    function setOpts(sel, set){
-      const cur = sel.value; sel.innerHTML = '<option value="" selected disabled hidden>Filtrar…</option>';
-      [...set].sort().forEach(v=>{
-        const o = document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o);
-      });
-      // no preseleccionar nada
-      sel.value = "";
-    }
-    setOpts(fSem, sem); setOpts(fBan, ban); setOpts(fMet, met);
-  }
-
-  async function load(initial=false){
-    const url = '/api/ingresos' + (initial ? '' : (params() ? `?${params()}` : ''));
-    const res = await fetch(url); const data = await res.json();
-    const rows = data.rows || [];
-    if (initial) fillOptions(rows);
-    tbody.innerHTML = rows.map(r=>`
+<div class="table-wrap wide">
+  <table id="tablaIngresos" class="fixed">
+    <thead>
       <tr>
-        <td>${r.FECHA}</td>
-        <td style="text-align:right">${nfCOP.format(r.CANTIDAD)}</td>
-        <td>${r.SEMESTRE}</td>
-        <td>${r.BANCO}</td>
-        <td>${r.METODO}</td>
-        <td>${r["LÍNEA"]}</td>
-        <td>${r.USER}</td>
-        <td>${r.EXTRA ?? ""}</td>
+        <th>FECHA</th><th>CANTIDAD</th><th>SEMESTRE</th><th>BANCO</th>
+        <th>MÉTODO</th><th>LÍNEA</th><th>USER</th><th>EXTRA</th>
       </tr>
-    `).join('');
-  }
-
-  fSem.addEventListener('change', ()=>load());
-  fBan.addEventListener('change', ()=>load());
-  fMet.addEventListener('change', ()=>load());
-  btnLimpiar.addEventListener('click', ()=>{
-    fSem.value=""; fBan.value=""; fMet.value=""; load(true);
-  });
-
-  load(true);
-})();
-</script>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
 {% endblock %}

@@ -1,56 +1,59 @@
 {% extends "base.html" %}
-{% block title %}Resumen Egresos{% endblock %}
 {% block content %}
-<h1>Resumen de Egresos</h1>
-
-<div class="grid mt">
+<div class="header-actions">
+  <h1>RESUMEN_EGRESOS</h1>
   <div>
-    <h2>Por Semestre</h2>
-    <table id="tSem">
-      <thead><tr><th>Semestre</th><th>Total (COP)</th></tr></thead>
-      <tbody></tbody>
-    </table>
-  </div>
-  <div>
-    <h2>Por Cuenta</h2>
-    <table id="tCta">
-      <thead><tr><th>Cuenta</th><th>Total (COP)</th></tr></thead>
-      <tbody></tbody>
-    </table>
-  </div>
-  <div>
-    <h2>Por Categoría</h2>
-    <table id="tCat">
-      <thead><tr><th>Categoría</th><th>Total (COP)</th></tr></thead>
-      <tbody></tbody>
-    </table>
+    <a class="btn" href="/egresos/nuevo">Generar</a>
+    <a class="btn" href="/egresos">Tabla</a>
+    <a class="btn" href="/">Menú</a>
   </div>
 </div>
 
-<h2 class="mt">Total general</h2>
-<p id="tGen" class="warn" style="font-size:18px"></p>
+<div class="filters soft">
+  <div class="filter-chips" id="fCtas"></div>
+  <div class="filter-chips" id="fSems"></div>
+  <div class="toggle">
+    <button id="btnNeto" class="btn primary">Neto</button>
+    <button id="btnReal" class="btn">Con 4x1000</button>
+  </div>
+</div>
 
-<script>
-(async function(){
-  const nfCOP = new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0});
-  const res = await fetch('/api/egresos'); const data = await res.json();
-  const rows = data.rows || [];
+<div class="kpis">
+  <div class="kpi"><div class="kpi-title">Total Neto</div><div id="kpiEgNeto" class="kpi-value">$ 0</div></div>
+  <div class="kpi"><div class="kpi-title">Total con 4x1000</div><div id="kpiEgReal" class="kpi-value">$ 0</div></div>
+  <div class="kpi"><div class="kpi-title">Diferencia</div><div id="kpiEgDiff" class="kpi-value">$ 0</div></div>
+  <div class="kpi"><div class="kpi-title"># Egresos</div><div id="kpiEgCount" class="kpi-value">0</div></div>
+</div>
 
-  const sum = (acc, k, v)=>{ acc[k]=(acc[k]||0)+Number(v||0); return acc; };
+<div class="table-wrap wide">
+  <table id="matNeto" class="fixed">
+    <thead>
+      <tr><th colspan="7">EGRESOS TOTALES</th></tr>
+      <tr><th>CUENTA</th><th>126</th><th>226</th><th>326</th><th>426</th><th>526</th><th>TOTAL</th></tr>
+    </thead>
+    <tbody></tbody>
+    <tfoot><tr id="matNetoTot"><th>TOTALES</th><th></th><th></th><th></th><th></th><th></th><th></th></tr></tfoot>
+  </table>
+</div>
 
-  const bySem = rows.reduce((a,r)=>sum(a, r.SEMESTRE||'—',  r.CANTIDAD_REAL ?? r.CANTIDAD), {});
-  const byCta = rows.reduce((a,r)=>sum(a, r.CUENTA||'—',    r.CANTIDAD_REAL ?? r.CANTIDAD), {});
-  const byCat = rows.reduce((a,r)=>sum(a, r.CATEGORIA||'—', r.CANTIDAD_REAL ?? r.CANTIDAD), {});
-  const total = rows.reduce((t,r)=>t+Number(r.CANTIDAD_REAL ?? r.CANTIDAD || 0), 0);
+<div class="table-wrap wide" style="margin-top:12px">
+  <table id="matReal" class="fixed">
+    <thead>
+      <tr><th colspan="7">EGRESOS TOTALES - CON 4x1000</th></tr>
+      <tr><th>CUENTA</th><th>126</th><th>226</th><th>326</th><th>426</th><th>526</th><th>TOTAL</th></tr>
+    </thead>
+    <tbody></tbody>
+    <tfoot><tr id="matRealTot"><th>TOTALES</th><th></th><th></th><th></th><th></th><th></th><th></th></tr></tfoot>
+  </table>
+</div>
 
-  function fill(id, obj){
-    const tbody = document.querySelector(id+' tbody');
-    const keys = Object.keys(obj).sort();
-    tbody.innerHTML = keys.map(k=>`<tr><td>${k}</td><td style="text-align:right">${nfCOP.format(obj[k])}</td></tr>`).join('');
-  }
-  fill('#tSem', bySem); fill('#tCta', byCta); fill('#tCat', byCat);
+<div class="grid2">
+  <div class="table-wrap"><table id="catNeto" class="fixed"><thead><tr><th colspan="2">GASTO TOTALES</th></tr></thead><tbody></tbody></table></div>
+  <div class="table-wrap"><table id="catReal" class="fixed"><thead><tr><th colspan="2">GASTO TOTALES (4x1000)</th></tr></thead><tbody></tbody></table></div>
+</div>
 
-  document.getElementById('tGen').textContent = nfCOP.format(total);
-})();
-</script>
+<div class="charts two">
+  <div class="chart-card"><h3>Composición por Semestre</h3><canvas id="egChartStacked"></canvas></div>
+  <div class="chart-card"><h3>Distribución por Categoría</h3><canvas id="egChartDonut"></canvas></div>
+</div>
 {% endblock %}

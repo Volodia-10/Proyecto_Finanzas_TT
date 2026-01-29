@@ -1,119 +1,40 @@
 {% extends "base.html" %}
-{% block title %}Egresos{% endblock %}
 {% block content %}
-<h1>Egresos</h1>
-
-<div class="row mt">
-  <div class="grid">
-    <div>
-      <label>Semestre</label>
-      <select id="fSemestre">
-        <option value="" selected disabled hidden>Filtrar…</option>
-      </select>
-    </div>
-    <div>
-      <label>Cuenta</label>
-      <select id="fCuenta">
-        <option value="" selected disabled hidden>Filtrar…</option>
-      </select>
-    </div>
-    <div>
-      <label>Categoría</label>
-      <select id="fCategoria">
-        <option value="" selected disabled hidden>Filtrar…</option>
-      </select>
-    </div>
-
-    <div class="row">
-      <a class="btn" href="/egresos/nuevo">+ Nuevo egreso</a>
-      <a class="btn" href="/api/egresos/export.csv">CSV</a>
-      <a class="btn" href="/api/egresos/export.xlsx">XLSX</a>
-      <button class="btn" id="btnLimpiar">Limpiar filtros</button>
-    </div>
+<div class="header-actions">
+  <h1>EGRESOS TOTALES</h1>
+  <div>
+    <a class="btn" href="/egresos/nuevo">Generar</a>
+    <a class="btn" href="/egresos/resumen">Resumen</a>
+    <a class="btn" href="/">Menú</a>
+    <button class="btn" id="expEgCsv">Exportar CSV</button>
+    <button class="btn" id="expEgXlsx">Exportar XLSX</button>
   </div>
 </div>
 
-<table id="tblEgresos" class="mt">
-  <thead>
-    <tr>
-      <th>Fecha</th>
-      <th>Cuenta</th>
-      <th>Método</th>
-      <th>Monto (COP)</th>
-      <th>Real (COP)</th>
-      <th>Semestre</th>
-      <th>Categoría</th>
-      <th>Razón</th>
-      <th>Autorizó</th>
-      <th>Responsable</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
+<div class="filters">
+  <div class="filter-row ten">
+    <input data-col="0" class="filter" placeholder="FECHA">
+    <input data-col="1" class="filter" placeholder="CUENTA">
+    <input data-col="2" class="filter" placeholder="MÉTODO">
+    <input data-col="3" class="filter" placeholder="CANTIDAD">
+    <input data-col="4" class="filter" placeholder="CANTIDAD REAL">
+    <input data-col="5" class="filter" placeholder="SEMESTRE">
+    <input data-col="6" class="filter" placeholder="CATEGORÍA">
+    <input data-col="7" class="filter" placeholder="RAZÓN">
+    <input data-col="8" class="filter" placeholder="AUTORIZÓ">
+    <input data-col="9" class="filter" placeholder="RESPONSABLE">
+  </div>
+</div>
 
-<script>
-(function () {
-  const $ = (q, d=document)=>d.querySelector(q);
-  const nfCOP = new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0});
-
-  const fSem = $('#fSemestre'), fCta = $('#fCuenta'), fCat = $('#fCategoria');
-  const tbody = $('#tblEgresos tbody');
-  const btnLimpiar = $('#btnLimpiar');
-
-  function params() {
-    const p = new URLSearchParams();
-    if (fSem.value) p.set('semestre', fSem.value);
-    if (fCta.value) p.set('cuenta',   fCta.value);
-    if (fCat.value) p.set('categoria',fCat.value);
-    return p.toString();
-  }
-
-  function fillOptions(rows){
-    const sem = new Set(), cta = new Set(), cat = new Set();
-    rows.forEach(r => {
-      if (r.SEMESTRE)  sem.add(r.SEMESTRE);
-      if (r.CUENTA)    cta.add(r.CUENTA);
-      if (r.CATEGORIA) cat.add(r.CATEGORIA);
-    });
-    function setOpts(sel, set){
-      sel.innerHTML = '<option value="" selected disabled hidden>Filtrar…</option>';
-      [...set].sort().forEach(v=>{
-        const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o);
-      });
-      sel.value="";
-    }
-    setOpts(fSem, sem); setOpts(fCta, cta); setOpts(fCat, cat);
-  }
-
-  async function load(initial=false){
-    const url = '/api/egresos' + (initial ? '' : (params() ? `?${params()}` : ''));
-    const res = await fetch(url); const data = await res.json();
-    const rows = data.rows || [];
-    if (initial) fillOptions(rows);
-    tbody.innerHTML = rows.map(r=>`
+<div class="table-wrap wide">
+  <table id="tablaEgresos" class="fixed">
+    <thead>
       <tr>
-        <td>${r.FECHA}</td>
-        <td>${r.CUENTA}</td>
-        <td>${r["MÉTODO"]}</td>
-        <td style="text-align:right">${nfCOP.format(r.CANTIDAD)}</td>
-        <td style="text-align:right">${nfCOP.format(r.CANTIDAD_REAL)}</td>
-        <td>${r.SEMESTRE}</td>
-        <td>${r.CATEGORIA}</td>
-        <td>${r.RAZÓN}</td>
-        <td>${r["AUTORIZÓ"] ?? ""}</td>
-        <td>${r.RESPONSABLE ?? ""}</td>
+        <th>FECHA</th><th>CUENTA</th><th>MÉTODO</th><th>CANTIDAD</th><th>CANTIDAD REAL</th>
+        <th>SEMESTRE</th><th>CATEGORÍA</th><th>RAZÓN</th><th>AUTORIZÓ</th><th>RESPONSABLE</th>
       </tr>
-    `).join('');
-  }
-
-  fSem.addEventListener('change', ()=>load());
-  fCta.addEventListener('change', ()=>load());
-  fCat.addEventListener('change', ()=>load());
-  btnLimpiar.addEventListener('click', ()=>{
-    fSem.value=""; fCta.value=""; fCat.value=""; load(true);
-  });
-
-  load(true);
-})();
-</script>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
 {% endblock %}

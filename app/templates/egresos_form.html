@@ -1,102 +1,70 @@
 {% extends "base.html" %}
-{% block title %}+ Egreso{% endblock %}
 {% block content %}
-<h1>Nuevo Egreso</h1>
-
-<div class="grid">
-  <label>
-    Monto (COP)
-    <input id="eg_monto" type="text" inputmode="numeric" placeholder="$ 0">
-  </label>
-
-  <label>
-    Cuenta
-    <select id="eg_cuenta"></select>
-  </label>
-
-  <label>
-    Método
-    <select id="eg_metodo"></select>
-  </label>
-
-  <label>
-    Semestre
-    <select id="eg_semestre"></select>
-  </label>
-
-  <label>
-    Categoría
-    <select id="eg_categoria"></select>
-  </label>
-
-  <label>
-    Razón
-    <input id="eg_razon" type="text" placeholder="DETALLE (usa el formato)">
-  </label>
-
-  <label>
-    Autorizó
-    <select id="eg_autorizo"></select>
-  </label>
-
-  <label>
-    Responsable
-    <select id="eg_responsable"></select>
-  </label>
+<div class="header-actions">
+  <h1>Generar Egreso</h1>
+  <div>
+    <a class="btn" href="/egresos">Egresos</a>
+    <a class="btn" href="/egresos/resumen">Resumen</a>
+    <a class="btn" href="/">Menú</a>
+  </div>
 </div>
 
-<p class="muted mt">
-  Si hay MES: usa <strong>RAZON_MES</strong>.<br/>
-  Si es <strong>CARROS</strong>: <strong>NOMBRECARRO_MOTIVO_RAZON</strong>.
-</p>
+<form id="formEgreso" class="form">
+  <div class="row">
+    <div class="field">
+      <label>MONTO (COP)</label>
+      <input id="e_monto" type="text" inputmode="numeric" placeholder="$ 0">
+      <small>Formato: $ 1.000.000,50</small>
+    </div>
+    <div class="field">
+      <label>CUENTA</label>
+      <select id="e_cuenta"><option value="">-</option></select>
+    </div>
+  </div>
 
-<div class="row mt">
-  <button id="btn_eg_guardar">Guardar</button>
-  <a class="btn" href="/egresos">Ver Egresos</a>
-</div>
+  <div class="row">
+    <div class="field">
+      <label>MÉTODO</label>
+      <select id="e_metodo"><option value="">-</option></select>
+    </div>
+    <div class="field">
+      <label>SEMESTRE</label>
+      <select id="e_semestre"><option value="">-</option></select>
+    </div>
+  </div>
 
-<script>
-  // selects sin preselección
-  populateSelect("eg_cuenta",    CUENTAS_EGRESO, true);
-  populateSelect("eg_metodo",    METODOS_EGRESO, true);
-  populateSelect("eg_semestre",  SEMESTRES, true);
-  populateSelect("eg_categoria", CATEGORIAS_EGRESO, true);
-  populateSelect("eg_autorizo",  PERSONAS, true);
-  populateSelect("eg_responsable", PERSONAS, true);
+  <div class="field">
+    <label>CATEGORÍA</label>
+    <select id="e_categoria"><option value="">-</option></select>
+  </div>
 
-  // máscara COP
-  attachMoneyMask("eg_monto");
+  <div id="e_dynamic" class="row"></div>
 
-  document.getElementById("btn_eg_guardar").addEventListener("click", async () => {
-    const monto   = getMoneyValue("eg_monto");
-    const cuenta  = getSel("eg_cuenta");
-    const metodo  = getSel("eg_metodo");
-    const semestre= getSel("eg_semestre");
-    const categoria = getSel("eg_categoria");
-    const razon     = val("eg_razon").trim();
-    const autorizo  = getSel("eg_autorizo");
-    const responsable = getSel("eg_responsable");
+  <div class="row">
+    <div class="field">
+      <label>AUTORIZÓ</label>
+      <!-- Lista corta correcta para autorización -->
+      <input id="e_autorizo" list="dl_empleados" placeholder="-">
+    </div>
+    <div class="field">
+      <label>RESPONSABLE</label>
+      <!-- Misma lista para responsable -->
+      <input id="e_responsable" list="dl_empleados" placeholder="-">
+    </div>
+  </div>
 
-    if (!monto || !cuenta || !metodo || !semestre || !categoria || !razon || !autorizo || !responsable) {
-      alert("Completa todos los campos."); return;
-    }
+  <!-- Datalist con tu core: EMPRESA, JESUS, FELIPE, MARLON (+ AUTOMATICO y OTRO) -->
+  <datalist id="dl_empleados">
+    <option value="EMPRESA"></option>
+    <option value="JESUS"></option>
+    <option value="FELIPE"></option>
+    <option value="MARLON"></option>
+    <option value="AUTOMATICO"></option>
+    <option value="OTRO"></option>
+  </datalist>
 
-    // extras usados por reglas de servidor (si aplica)
-    const payload = {
-      monto, cuenta, metodo, semestre, categoria, razon,
-      autorizo, responsable,
-      mes: extraMesDesdeRazon(razon),
-      nombre_carro: extraCarroDesdeRazon(razon).nombre,
-      motivo_carro: extraCarroDesdeRazon(razon).motivo
-    };
+  <button class="btn primary" type="submit">REGISTRAR EGRESO</button>
+</form>
 
-    const r = await fetch("/api/egresos", {
-      method:"POST", headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify(payload)
-    });
-    const data = await r.json();
-    if (data.ok) { alert("Egreso guardado."); window.location.href="/egresos"; }
-    else { alert("Error creando egreso"); }
-  });
-</script>
+<div id="toast" class="toast hidden">Egreso registrado</div>
 {% endblock %}

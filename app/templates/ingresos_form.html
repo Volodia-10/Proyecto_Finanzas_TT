@@ -1,89 +1,63 @@
 {% extends "base.html" %}
-{% block title %}+ Ingreso{% endblock %}
 {% block content %}
-<h1>Nuevo Ingreso</h1>
-
-<div class="grid">
-  <label>
-    Monto (COP)
-    <input id="ing_monto" type="text" inputmode="numeric" placeholder="$ 0">
-  </label>
-
-  <label>
-    Semestre
-    <select id="ing_semestre"></select>
-  </label>
-
-  <label>
-    Cuenta
-    <select id="ing_cuenta"></select>
-  </label>
-
-  <label>
-    Detalle de cuenta / Método
-    <select id="ing_detalle"></select>
-  </label>
-
-  <label>
-    Línea
-    <input id="ing_linea" type="text" value="PENDIENTE">
-  </label>
-
-  <label>
-    User
-    <input id="ing_user" type="text" value="PENDIENTE">
-  </label>
+<div class="header-actions">
+  <h1>Generar Ingreso</h1>
+  <div>
+    <a class="btn" href="/ingresos">Ingresos</a>
+    <a class="btn" href="/ingresos/resumen">Resumen</a>
+    <a class="btn" href="/">Menú</a>
+  </div>
 </div>
 
-<div class="row mt">
-  <button id="btn_ing_guardar">Guardar</button>
-  <a class="btn" href="/ingresos">Ver Ingresos</a>
-</div>
+<form id="formIngreso" class="form">
+  <div class="field">
+    <label>MONTO (COP)</label>
+    <input id="monto" type="text" inputmode="numeric" placeholder="$ 0">
+    <small>Formato: $ 1.000.000,50</small>
+  </div>
 
-<script>
-  // poblar selects SIN selección por defecto
-  populateSelect("ing_semestre", SEMESTRES, true);
-  populateSelect("ing_cuenta",   CUENTAS_INGRESO, true);
-  // detalle depende de cuenta
-  setPlaceholder("ing_detalle");
-  document.getElementById("ing_cuenta").addEventListener("change", (e) => {
-    const cuenta = e.target.value || "";
-    const opciones = DETALLE_POR_CUENTA[cuenta] || [];
-    populateSelect("ing_detalle", opciones, true);
-  });
+  <div class="row">
+    <div class="field">
+      <label>SEMESTRE</label>
+      <select id="semestre"><option value="">-</option></select>
+    </div>
+    <div class="field">
+      <label>CUENTA</label>
+      <select id="cuenta"><option value="">-</option></select>
+    </div>
+  </div>
 
-  // máscara COP
-  attachMoneyMask("ing_monto");
+  <div class="field">
+    <label>DETALLE DE CUENTA</label>
+    <select id="detalle"><option value="">-</option></select>
+  </div>
 
-  // guardar
-  document.getElementById("btn_ing_guardar").addEventListener("click", async () => {
-    const monto    = getMoneyValue("ing_monto");
-    const semestre = getSel("ing_semestre");
-    const cuenta   = getSel("ing_cuenta");
-    const detalleV = getSel("ing_detalle");
-    const linea    = val("ing_linea").trim() || "PENDIENTE";
-    const user     = val("ing_user").trim()  || "PENDIENTE";
+  <div id="wompiMetodoWrap" class="field hidden">
+    <label>MÉTODO DE PAGO (WOMPI)</label>
+    <select id="wompiMetodo">
+      <option value="">-</option>
+      <option value="PSE">PSE</option>
+      <option value="TC">TC</option>
+    </select>
+  </div>
 
-    if (!monto || !semestre || !cuenta || !detalleV) {
-      alert("Completa Monto, Semestre, Cuenta y Detalle."); return;
-    }
+  <div class="field">
+    <label><input type="checkbox" id="chkLU"> Ingresar LÍNEA y USUARIO ahora</label>
+  </div>
 
-    // WOMPI: mapear a metodo='WOMPI' + wompi_mp=PSE/TC
-    let metodo = detalleV, wompi_mp = "";
-    if (detalleV.startsWith("WOMPI ")) {
-      metodo = "WOMPI";
-      wompi_mp = detalleV.split(" ")[1]; // PSE o TC
-    }
+  <div id="luWrap" class="row hidden">
+    <div class="field">
+      <label>LÍNEA</label>
+      <select id="linea"><option value="">-</option></select>
+    </div>
+    <div class="field">
+      <label>USUARIO</label>
+      <input id="usuario" type="text" placeholder="-">
+    </div>
+  </div>
 
-    const payload = { monto, semestre, cuenta, detalle: metodo, wompi_mp, linea, user };
+  <button class="btn primary" type="submit">REGISTRAR INGRESO</button>
+</form>
 
-    const r = await fetch("/api/ingresos", {
-      method:"POST", headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify(payload)
-    });
-    const data = await r.json();
-    if (data.ok) { alert("Ingreso guardado."); window.location.href="/ingresos"; }
-    else { alert("Error creando ingreso"); }
-  });
-</script>
+<div id="toast" class="toast hidden">Ingreso registrado</div>
 {% endblock %}

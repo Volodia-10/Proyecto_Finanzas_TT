@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="header-actions">
+  <h1>Histórico Transferencias</h1>
+  <div>
+    <a class="btn" href="/transferencias/nuevo">Nueva</a>
+    <a class="btn" href="/">Menú</a>
+  </div>
+</div>
+
+<div class="table-wrap wide">
+  <table id="tablaTransf" class="fixed">
+    <thead>
+      <tr><th>FECHA</th><th>MONTO</th><th>SEMESTRE</th><th>ORIGEN</th><th>DESTINO</th><th>COSTO</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+{% endblock %}

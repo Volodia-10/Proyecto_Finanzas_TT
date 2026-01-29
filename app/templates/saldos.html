@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="header-actions">
+  <h1>Saldos por Cuenta</h1>
+  <div>
+    <a class="btn" href="/">Menú</a>
+    <a class="btn" href="/ingresos/resumen">Resumen Ingresos</a>
+    <a class="btn" href="/egresos/resumen">Resumen Egresos</a>
+    <button class="btn" id="expSaldosCsv">Exportar CSV</button>
+    <button class="btn" id="expSaldosXlsx">Exportar XLSX</button>
+  </div>
+</div>
+
+<div class="table-wrap wide">
+  <table id="tablaSaldos" class="fixed">
+    <thead><tr><th>CUENTA</th><th>INGRESOS</th><th>EGRESOS</th><th>TRANSF (+)</th><th>TRANSF (-)</th><th>SALDO</th></tr></thead>
+    <tbody></tbody>
+  </table>
+</div>
+{% endblock %}

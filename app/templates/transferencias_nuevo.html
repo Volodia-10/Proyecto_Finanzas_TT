@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="header-actions">
+  <h1>Transferencia Interna</h1>
+  <div>
+    <a class="btn" href="/transferencias">Histórico</a>
+    <a class="btn" href="/">Menú</a>
+    <a class="btn" href="/ingresos">Ingresos</a>
+    <a class="btn" href="/egresos">Egresos</a>
+  </div>
+</div>
+
+<form id="formTransfer" class="form">
+  <div class="row">
+    <div class="field">
+      <label>MONTO (COP)</label>
+      <input id="t_monto" type="text" inputmode="numeric" placeholder="$ 0">
+      <small>Formato: $ 1.000.000,50</small>
+    </div>
+    <div class="field">
+      <label>SEMESTRE</label>
+      <select id="t_semestre"><option value="">-</option></select>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="field">
+      <label>ORIGEN</label>
+      <select id="t_origen"><option value="">-</option></select>
+    </div>
+    <div class="field">
+      <label>DESTINO</label>
+      <select id="t_destino"><option value="">-</option></select>
+    </div>
+  </div>
+
+  <div class="field">
+    <label>COSTO/COMISIÓN (opcional, egreso en ORIGEN)</label>
+    <input id="t_costo" type="text" inputmode="numeric" placeholder="$ 0">
+  </div>
+
+  <button class="btn primary" type="submit">GENERAR TRANSFERENCIA</button>
+</form>
+
+<div id="toast" class="toast hidden">Transferencia registrada</div>
+{% endblock %}
