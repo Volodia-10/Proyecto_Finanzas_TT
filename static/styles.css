@@ -1,0 +1,21 @@
+:root{color-scheme:dark light}
+*{box-sizing:border-box}
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;margin:0;background:#0b1120;color:#e5e7eb}
+a{color:#93c5fd;text-decoration:none}
+a:hover{color:#fff}
+.wrap{max-width:1100px;margin:auto;padding:18px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+header{position:sticky;top:0;background:#0f172a;border-bottom:1px solid #1f2937}
+h1,h2{margin:14px 0}
+label{display:flex;flex-direction:column;gap:6px}
+input,select,button,textarea{padding:10px 12px;border-radius:10px;border:1px solid #334155;background:#0f172a;color:#e5e7eb}
+button{cursor:pointer;background:#1d4ed8;border-color:#1e40af}
+button:hover{filter:brightness(1.05)}
+table{width:100%;border-collapse:collapse;margin-top:8px;background:#0f172a;border:1px solid #1f2937}
+th,td{padding:10px;border-top:1px solid #1f2937;text-align:left}
+th{position:sticky;top:56px;background:#111827}
+.muted{color:#94a3b8}
+.ok{color:#86efac}
+.warn{color:#fca5a5}
+.badge{font-size:12px;padding:3px 8px;border:1px solid #475569;border-radius:999px;background:#0b1225}

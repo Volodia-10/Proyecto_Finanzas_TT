@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Nuevo ingreso</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+<header class="row wrap" style="justify-content:space-between">
+  <nav>
+    <a href="/">Inicio</a>
+    <a href="/ingresos">Ingresos</a>
+    <a href="/egresos">Egresos</a>
+  </nav>
+</header>
+
+<main class="wrap">
+  <h1>Nuevo ingreso</h1>
+  <form id="form-ingreso" class="grid">
+    <label>Monto (COP)
+      <input type="text" id="ing_monto" data-money inputmode="numeric" autocomplete="off" required>
+    </label>
+
+    <label>Semestre
+      <select id="ing_semestre" required>
+        <option value="" selected disabled hidden>Seleccione…</option>
+        <option>126</option><option>226</option><option>326</option>
+        <option>426</option><option>526</option><option>626</option>
+      </select>
+    </label>
+
+    <label>Cuenta
+      <select id="ing_cuenta" required>
+        <option value="" selected disabled hidden>Seleccione…</option>
+        <option>BANCOLOMBIA_1423</option>
+        <option>NEQUI</option>
+        <option>DAVIPLATA</option>
+        <option>DAVIVIENDA</option>
+      </select>
+    </label>
+
+    <label>Detalle / Método
+      <select id="ing_detalle" required>
+        <option value="" selected disabled hidden>Seleccione…</option>
+        <option>BANCOLOMBIA</option>
+        <option>PSE</option>
+        <option>NEQUI</option>
+        <option>EFECTIVO</option>
+        <option>WOMPI</option>
+        <option>PAGO INTERESES</option>
+      </select>
+    </label>
+
+    <label id="wompi_mp_wrap" style="display:none">Wompi medio de pago
+      <select id="ing_wompi_mp">
+        <option value="" selected disabled hidden>Seleccione…</option>
+        <option>PSE</option>
+        <option>TC</option>
+      </select>
+    </label>
+
+    <label>Línea
+      <select id="ing_linea" required>
+        <option value="" selected disabled hidden>Seleccione…</option>
+        <option>ASEU</option>
+        <option>OTROS</option>
+      </select>
+    </label>
+
+    <label>Usuario
+      <input type="text" id="ing_user" placeholder="Opcional">
+    </label>
+
+    <div class="row">
+      <button type="submit" id="btn_ing">Generar ingreso</button>
+      <a class="muted" href="/ingresos" style="align-self:center">Ver tabla</a>
+    </div>
+  </form>
+  <p id="ing_msg" class="mt muted"></p>
+</main>
+
+<script src="/static/script.js"></script>
+<script>
+  document.getElementById('ing_detalle').addEventListener('change', e=>{
+    document.getElementById('wompi_mp_wrap').style.display = (e.target.value === 'WOMPI') ? '' : 'none';
+  });
+
+  document.getElementById('form-ingreso').addEventListener('submit', async (ev)=>{
+    ev.preventDefault();
+    const btn=document.getElementById('btn_ing'); btn.disabled=true;
+
+    const payload = {
+      monto:    normalizeMoney(document.getElementById('ing_monto').value),
+      semestre: document.getElementById('ing_semestre').value,
+      cuenta:   document.getElementById('ing_cuenta').value,
+      detalle:  document.getElementById('ing_detalle').value,
+      wompi_mp: document.getElementById('ing_wompi_mp').value || "",
+      linea:    document.getElementById('ing_linea').value,
+      user:     document.getElementById('ing_user').value || ""
+    };
+
+    const r = await fetch('/api/ingresos', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+
+    if(r.ok){ location.href='/ingresos'; }
+    else{ document.getElementById('ing_msg').textContent='Error: '+await r.text(); btn.disabled=false; }
+  });
+</script>
+</body>
+</html>
